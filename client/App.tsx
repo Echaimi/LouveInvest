@@ -1,67 +1,73 @@
 import { useEffect, useState } from "react";
-import type { HealthResponse } from "../shared/types";
+import type { ScpiSnapshot } from "../shared/types";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MarketOverview } from "./MarketOverview";
 
-type ConnectionStatus = "checking" | "available" | "unavailable";
+type MarketState =
+  | { status: "loading" }
+  | { status: "loaded"; snapshot: ScpiSnapshot }
+  | { status: "error"; message: string };
 
 export default function App() {
-  const [status, setStatus] = useState<ConnectionStatus>("checking");
-
-  async function checkConnection() {
-    setStatus("checking");
-    try {
-      const response = await fetch("/api/health", {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (!response.ok) throw new Error("Service indisponible");
-      const data: HealthResponse = await response.json();
-      setStatus(data.status === "ok" ? "available" : "unavailable");
-    } catch {
-      setStatus("unavailable");
-    }
-  }
+  const [market, setMarket] = useState<MarketState>({ status: "loading" });
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    void checkConnection();
-  }, []);
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]);
+    setMarket({ status: "loading" });
+    async function loadMarket() {
+      let message = "Les données Primopierre ne peuvent pas être chargées. Vérifiez votre connexion puis réessayez.";
+      try {
+        const response = await fetch("/api/scpi/primopierre", { signal, cache: "no-store" });
+        if (!response.ok) {
+          const error = await response.json();
+          if (typeof error.message === "string") message = error.message;
+          throw new Error(message);
+        }
+        const snapshot: ScpiSnapshot = await response.json();
+        if (!controller.signal.aborted) setMarket({ status: "loaded", snapshot });
+      } catch {
+        if (!controller.signal.aborted) setMarket({
+          status: "error", message: signal.aborted ? "Le chargement dépasse le délai de 15 secondes. Vous pouvez réessayer." : message,
+        });
+      }
+    }
+    void loadMarket();
+    return () => controller.abort();
+  }, [refresh]);
 
   return (
     <div className="min-h-svh bg-background text-foreground">
+      <a href="#market-content" className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:bg-white focus:p-4">Aller au contenu</a>
       <header className="border-b border-border bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-6">
-          <a href="/" aria-label="LouveInvest, accueil" className="rounded-sm text-2xl tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
-            <span className="font-bold text-primary">louve</span>
-            <span className="font-light">invest</span>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-8">
+          <a href="/" aria-label="LouveInvest, accueil" className="rounded-sm text-2xl tracking-tight">
+            <span className="font-bold text-primary">louve</span><span className="font-light">invest</span>
           </a>
+          <span className="text-sm text-muted-foreground">Marché secondaire des SCPI</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Comprendre avant d'investir</p>
-        <h1 className="mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Le marché secondaire,<br />en clair.</h1>
-        <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">Un espace pour analyser les parts de SCPI et préparer votre projet d'achat.</p>
-
-        <section aria-labelledby="primopierre-heading" className="mt-10 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Praemia REIM France</p>
-              <h2 id="primopierre-heading" className="mt-2 text-2xl font-semibold">Primopierre</h2>
-            </div>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">En préparation</span>
+      <main id="market-content" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary">Praemia REIM France · Pleine propriété</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight">Primopierre</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Consultez le marché publié, son rendement historique et une estimation de la prochaine confrontation.</p>
           </div>
-          <p className="mt-5 max-w-xl text-sm leading-6 text-muted-foreground">Les données de marché, le rendement et l'estimation de la prochaine confrontation seront disponibles dans les prochaines étapes.</p>
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-            <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm">
-              <span aria-hidden="true" className={`size-2 rounded-full ${status === "available" ? "bg-emerald-600" : status === "unavailable" ? "bg-red-600" : "bg-slate-400"}`} />
-              {status === "checking" ? "Vérification du service…" : status === "available" ? "Service disponible" : "Service indisponible. Vous pouvez réessayer."}
-            </p>
-            <Button type="button" variant="outline" disabled={status === "checking"} onClick={() => void checkConnection()}>
-              {status === "checking" ? "Vérification…" : "Vérifier la connexion"}
-            </Button>
-          </div>
-        </section>
+          <Button type="button" variant="outline" disabled={market.status === "loading"} onClick={() => setRefresh((value) => value + 1)}>
+            {market.status === "loading" ? "Chargement…" : market.status === "error" ? "Réessayer" : "Actualiser les données"}
+          </Button>
+        </div>
 
-        <p className="mt-7 max-w-2xl text-xs leading-5 text-muted-foreground">Les SCPI comportent un risque de perte en capital. Les revenus et la liquidité ne sont pas garantis.</p>
+        <div aria-busy={market.status === "loading"}>
+          {market.status === "loading" && <p role="status" className="rounded-xl border border-border bg-card p-8 text-sm">Chargement du marché Primopierre depuis la source officielle…</p>}
+          {market.status === "error" && <Alert variant="destructive"><AlertTitle>Chargement impossible</AlertTitle><AlertDescription>{market.message}</AlertDescription></Alert>}
+          {market.status === "loaded" && <MarketOverview snapshot={market.snapshot} />}
+        </div>
+        {market.status !== "loaded" && <p className="mt-6 text-xs leading-5 text-muted-foreground">Les SCPI comportent un risque de perte en capital. Les revenus et la liquidité ne sont pas garantis.</p>}
       </main>
     </div>
   );

@@ -5,6 +5,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-muted: var(--secondary);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -34,8 +36,21 @@
 }
 
 @layer base {
+  * {
+    border-color: var(--border);
+  }
   body {
     margin: 0;
     font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
+  .source-link {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
   }
 }
