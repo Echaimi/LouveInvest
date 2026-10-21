@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 
 const port = Number(process.env.PORT ?? 3001);
+const host = process.env.HOST ?? "127.0.0.1";
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error("PORT doit être un entier compris entre 1 et 65535.");
 }
@@ -16,6 +17,6 @@ if (import.meta.url.endsWith(".js")) {
   app.use(express.static(clientDirectory));
 }
 
-app.listen(port, "127.0.0.1", () => {
-  console.log(`LouveInvest : http://127.0.0.1:${port}`);
+app.listen(port, host, () => {
+  console.log(`LouveInvest : http://${host}:${port}`);
 });
