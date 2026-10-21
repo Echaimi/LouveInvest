@@ -61,3 +61,19 @@ test("distingue un carnet vide d'un carnet sans croisement", () => {
   expect(load(noCrossing).text()).toContain("Aucun croisement");
   expect(load(noCrossing).text()).not.toContain("0 parts");
 });
+
+test("présente chaque confrontation en fiche avec tous ses libellés et les données manquantes", () => {
+  const $ = load(renderToStaticMarkup(<MarketOverview snapshot={{ ...snapshot, history: [
+    { date: "2026-09-24", priceCents: 3188, buyerPriceCents: 3500, matchedShares: 364 },
+    { date: null, priceCents: 3600, buyerPriceCents: null, matchedShares: 1747 },
+  ] }} />));
+  const records = $('ol[aria-label="Historique des confrontations"] > li');
+  expect(records).toHaveLength(2);
+  const first = records.eq(0).text().replace(/\s/g, " ");
+  expect(first).toContain("24 sept. 2026");
+  expect(first).toContain("Prix hors frais31,88 €");
+  expect(first).toContain("Prix acquéreur frais inclus publié35,00 €");
+  expect(first).toContain("Parts échangées364");
+  expect(records.eq(1).text()).toContain("Non communiquée");
+  expect(records.eq(1).text()).toContain("Non communiqué");
+});

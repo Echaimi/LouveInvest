@@ -116,18 +116,38 @@ export function MarketOverview({ snapshot }: { snapshot: ScpiSnapshot }) {
         <CardHeader><CardTitle><h2 className="text-xl">Historique des confrontations</h2></CardTitle><CardDescription>Échanges constatés, distincts de l'estimation ci-dessus.</CardDescription></CardHeader>
         <CardContent>
           {!snapshot.history?.length ? <p className="text-sm text-muted-foreground">Historique indisponible.</p> : (
-            <Table aria-label="Historique des confrontations">
-              <TableCaption>Historique publié par Praemia REIM. Prix par part en euros.</TableCaption>
-              <TableHeader><TableRow><TableHead scope="col">Date</TableHead><TableHead scope="col" className="text-right">Prix hors frais</TableHead><TableHead scope="col" className="text-right">Prix acquéreur frais inclus publié</TableHead><TableHead scope="col" className="text-right">Parts échangées</TableHead></TableRow></TableHeader>
-              <TableBody>{snapshot.history.map((execution, index) => (
-                <TableRow key={`${execution.date}-${index}`}>
-                  <TableCell className="whitespace-nowrap">{date(execution.date)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap tabular-nums">{money(execution.priceCents)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap tabular-nums">{execution.buyerPriceCents === null ? "Non communiqué" : money(execution.buyerPriceCents)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{quantities.format(execution.matchedShares)}</TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table>
+            <>
+              <ol aria-label="Historique des confrontations" className="space-y-3 md:hidden">
+                {snapshot.history.map((execution, index) => (
+                  <li key={`${execution.date}-${index}`} className="rounded-lg border bg-background p-4">
+                    <h3 className="mb-3 font-semibold">{date(execution.date)}</h3>
+                    <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 text-sm leading-5">
+                      <dt className="text-muted-foreground">Prix hors frais</dt>
+                      <dd className="text-right font-medium tabular-nums">{money(execution.priceCents)}</dd>
+                      <dt className="text-muted-foreground">Prix acquéreur frais inclus publié</dt>
+                      <dd className="text-right font-medium tabular-nums">{execution.buyerPriceCents === null ? "Non communiqué" : money(execution.buyerPriceCents)}</dd>
+                      <dt className="text-muted-foreground">Parts échangées</dt>
+                      <dd className="text-right font-medium tabular-nums">{quantities.format(execution.matchedShares)}</dd>
+                    </dl>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-4 text-sm leading-5 text-muted-foreground md:hidden">Historique publié par Praemia REIM. Prix par part en euros.</p>
+              <div className="hidden md:block">
+                <Table aria-label="Historique des confrontations">
+                  <TableCaption>Historique publié par Praemia REIM. Prix par part en euros.</TableCaption>
+                  <TableHeader><TableRow><TableHead scope="col">Date</TableHead><TableHead scope="col" className="text-right">Prix hors frais</TableHead><TableHead scope="col" className="text-right">Prix acquéreur frais inclus publié</TableHead><TableHead scope="col" className="text-right">Parts échangées</TableHead></TableRow></TableHeader>
+                  <TableBody>{snapshot.history.map((execution, index) => (
+                    <TableRow key={`${execution.date}-${index}`}>
+                      <TableCell className="whitespace-nowrap">{date(execution.date)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap tabular-nums">{money(execution.priceCents)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap tabular-nums">{execution.buyerPriceCents === null ? "Non communiqué" : money(execution.buyerPriceCents)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{quantities.format(execution.matchedShares)}</TableCell>
+                    </TableRow>
+                  ))}</TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
