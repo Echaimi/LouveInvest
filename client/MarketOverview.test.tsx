@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { parsePrimopierreHtml } from "../server/primopierre";
 import { primopierreConfig } from "../server/scpi-config";
 import type { ScpiSnapshot } from "../shared/types";
@@ -76,4 +76,23 @@ test("présente chaque confrontation en fiche avec tous ses libellés et les don
   expect(first).toContain("Parts échangées364");
   expect(records.eq(1).text()).toContain("Non communiquée");
   expect(records.eq(1).text()).toContain("Non communiqué");
+});
+
+test("conserve le marché si le chargement du graphique échoue", async () => {
+  vi.resetModules();
+  vi.doMock("./YieldChart", () => { throw new Error("Chargement du graphique impossible"); });
+  try {
+    const { MarketOverview: Overview } = await import("./MarketOverview");
+    const errors: unknown[] = [];
+    const stream = await renderToReadableStream(<Overview snapshot={snapshot} />, { onError: error => { errors.push(error); } });
+    await stream.allReady;
+    const $ = load(await new Response(stream).text());
+    expect(errors).toEqual([]);
+    expect($.text()).toContain("Graphique temporairement indisponible");
+    expect($.text()).toContain("Dernière confrontation constatée");
+    expect($.text()).toContain("31,88");
+  } finally {
+    vi.doUnmock("./YieldChart");
+    vi.resetModules();
+  }
 });

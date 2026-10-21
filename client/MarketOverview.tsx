@@ -1,10 +1,14 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import type { OrderLevel, ScpiSnapshot } from "../shared/types";
 import { calculateBudgetCents, calculateYieldPercent } from "../shared/finance";
 import { estimateAuction } from "../shared/auction";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const YieldChart = lazy(() => import("./YieldChart")
+  .then(module => ({ default: module.YieldChart }))
+  .catch(() => ({ default: () => <p role="status" className="text-sm text-muted-foreground">Graphique temporairement indisponible.</p> })));
 
 const euros = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const percentages = new Intl.NumberFormat("fr-FR", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -84,6 +88,10 @@ export function MarketOverview({ snapshot }: { snapshot: ScpiSnapshot }) {
         </div>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">Sources : <a className="source-link" href={fees.sourceUrl}>commission et droits</a> · <a className="source-link" href={dividend.sourceUrl}>dividende annuel brut {dividend.year}</a>. Le rendement utilise le coût frais inclus avant arrondi d'affichage.</p>
       </section>
+
+      <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Chargement du graphique…</p>}>
+        <YieldChart referencePriceCents={lastExecution?.priceCents ?? null} dividend={dividend} fees={fees} />
+      </Suspense>
 
       <Card>
         <CardHeader>
