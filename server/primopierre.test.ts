@@ -6,6 +6,7 @@ import { fetchPrimopierre, parsePrimopierreHtml } from "./primopierre.js";
 const html = readFileSync(new URL("./fixtures/primopierre.html", import.meta.url), "utf8");
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -116,4 +117,20 @@ test("ne colle pas la date d'un vieil échange sur le dernier prix", () => {
 test("remonte la panne réseau sans fallback sur les données de test", async () => {
   vi.stubGlobal("fetch", async () => { throw new TypeError("Connexion impossible"); });
   await expect(fetchPrimopierre()).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });
+});
+
+test("avertit quand le dividende ne correspond plus à l'année précédente à Paris", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.stubGlobal("fetch", async () => new Response(html));
+  vi.setSystemTime(new Date("2026-12-31T22:59:59Z"));
+  const current = await fetchPrimopierre();
+  expect(current.warnings.some((warning) => warning.includes("Dividende"))).toBe(false);
+
+  vi.setSystemTime(new Date("2026-12-31T23:00:00Z"));
+  const stale = await fetchPrimopierre();
+  expect(stale.dividend).toEqual(current.dividend);
+  expect(stale.warnings).toEqual(expect.arrayContaining([
+    expect.stringMatching(/Dividende.*2025.*2026/),
+  ]));
+  expect(stale.fetchedAt).toBe("2026-12-31T23:00:00.000Z");
 });

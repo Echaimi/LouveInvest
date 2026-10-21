@@ -27,7 +27,12 @@ export async function fetchPrimopierre(): Promise<ScpiSnapshot> {
   }
   try {
     const market = parsePrimopierreHtml(html);
-    return { ...primopierreConfig, ...market, fetchedAt: new Date().toISOString() };
+    const fetchedAt = new Date();
+    const previousYear = Number(new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric" }).format(fetchedAt)) - 1;
+    if (primopierreConfig.dividend.year !== previousYear) {
+      market.warnings.push(`Dividende brut ${primopierreConfig.dividend.year} : donnée à actualiser, année attendue ${previousYear}. Le rendement ne représente pas l'année civile précédente.`);
+    }
+    return { ...primopierreConfig, ...market, fetchedAt: fetchedAt.toISOString() };
   } catch {
     throw new PrimopierreError("SOURCE_INVALID_FORMAT", "Les données de marché Primopierre sont absentes ou leur format a changé.");
   }
