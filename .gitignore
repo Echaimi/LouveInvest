@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.superpowers/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+
+# Local documentation and AI tooling are not published.
+*.md
+*.mdx
+*.pdf
+*.rst
+/docs/
+/.agents/
+/.ai/
+/.claude/
+/.codex/
+/.cursor/
+/.windsurf/
+.cursorrules
+.clinerules
+.windsurfrules
