@@ -1,5 +1,6 @@
 import { load } from "cheerio";
 import type { ScpiSnapshot } from "../shared/types.js";
+import { calculateBudgetCents } from "../shared/finance.js";
 import { primopierreConfig } from "./scpi-config.js";
 
 type MarketData = Pick<ScpiSnapshot,
@@ -27,6 +28,7 @@ export async function fetchPrimopierre(): Promise<ScpiSnapshot> {
   }
   try {
     const market = parsePrimopierreHtml(html);
+    if (market.lastExecution !== null) calculateBudgetCents(market.lastExecution.priceCents, 1, primopierreConfig.fees);
     const fetchedAt = new Date();
     const previousYear = Number(new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric" }).format(fetchedAt)) - 1;
     if (primopierreConfig.dividend.year !== previousYear) {

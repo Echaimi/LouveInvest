@@ -119,6 +119,11 @@ test("remonte la panne réseau sans fallback sur les données de test", async ()
   await expect(fetchPrimopierre()).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });
 });
 
+test("refuse un prix source dont le coût frais inclus dépasse la précision des calculs", async () => {
+  vi.stubGlobal("fetch", async () => new Response(html.replaceAll("31,88", "90000000000000,00")));
+  await expect(fetchPrimopierre()).rejects.toMatchObject({ code: "SOURCE_INVALID_FORMAT" });
+});
+
 test("avertit quand le dividende ne correspond plus à l'année précédente à Paris", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.stubGlobal("fetch", async () => new Response(html));
